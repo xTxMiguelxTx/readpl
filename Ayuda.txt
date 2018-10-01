@@ -1,0 +1,1067 @@
+﻿-- EN CONSOLA
+sqlplus "/ as sysdba"
+
+-- CREAR USUAIO
+CREATE USER usuario IDENTIFIED BY contrasena;
+
+-- PERMISOS A USUARIO
+GRANT ALL PRIVILEGES TO usuario;
+GRANT CONNECT,RESOURCE TO usuario;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tabla TO usuario;
+
+-- REACTIVAR USUARIO
+ALTER USER usuario IDENTIFIED BY contrasena ACCOUNT UNLOCK;
+
+-- CONSULTAR CATALOGO
+SELECT * FROM cat;
+
+-- DESCRIBIR ESTRUCTURA DE UNA TABLA
+DESCRIBE tabla;
+
+--- OBTENER DATOS DE DUAL (SISTEMA)
+SELECT SYSDATE FROM dual;
+
+-- ACTIVAR SALIDA DE CONSOLA
+set serveroutput on 
+
+-- CONCATENAR
+SELECT 'FECHA: ' || SYSDATE FROM DUAL
+
+-- INSERTAR METODO IMPLICITO
+-- Se omiten las columnas que aceptan valores nulos.
+Script: insert into departments(department_id, department_name) values(301, 'Departamento 301');
+
+-- INSERTAR METODO EXPLICITO
+-- Especificamos la palabra clave NULL en las columnas donde queremos insertar un valor nulo.
+insert into departments values(302, 'Departamento 302', NULL, NULL);
+
+-- Insertando Valores Especiales
+insert into employees (employee_id, first_name, last_name, email, phone_number, hire_date, job_id, salary, commission_pct, manager_id, department_id) values(250, 'Gustavo', 'Coronel', 'gcoronel@miempresa.com', '511.481.1070', sysdate, 'FI_MGR', 14000, NULL, 102, 100);
+
+-- Insertando Valores Específicos de Fecha
+insert into employees values(251, 'Ricardo', 'Marcelo', 'rmarcelo@techsoft.com', '511.555.4567', to_date('FEB 4, 2005', 'MON DD, YYYY'), 'AC_ACCOUNT', 11000, NULL, 100, 30);
+
+-- Copiando Filas Desde Otra Tabla
+-- tabla test
+create table test
+(
+id number(6) primary key,
+name varchar2(20),
+salary number(8,2)
+);
+
+-- Insertando datos a test desde employees
+insert into test (id, name, salary)
+select employee_id, first_name, salary
+from employees where department_id = 30;
+
+
+-- Insertando hacia Múltiples Tablas
+insert all
+when department_id = 50 then into test50 (id, name, salary) values(employee_id, first_name, salary)
+when department_id = 80 then into test80 (id, name, salary) values (employee_id, first_name, salary)
+else into test(id, name, salary) values(employee_id, first_name, salary)
+select department_id, employee_id, first_name, salary
+from employees;
+
+--Actualizando una Columna de una Tabla
+--Incrementar el salario de todos los empleados en 10%.
+update employees set salary = salary * 1.10;
+
+-- Actualizando Columnas con Subconsultas
+--Pat Fay (Employee_id = 202) ha sido trasladada al mismo departamento del empleado 203, y su salario tiene que ser el máximo permitido en su puesto de trabajo.
+update employees
+set department_id = (select department_id from employees
+where employee_id = 203),
+salary = (select max_salary from jobs
+where jobs.job_id = employees.job_id)
+where employee_id = 202;
+
+-- Uso de Subconsultas para eliminación
+-- Eliminar los empleados que tienen el salario máximo en cada puesto de trabajo.
+delete from copia_emp where salary = (select max_salary from jobs where jobs.job_id = copia_emp.job_id);
+
+-- ELIMINA TODOS LOS DATOS DE TABLA
+truncate table libros;
+delete from libros;
+
+-- CREAR TABLA
+CREATE TABLE TABLA
+(
+  CAMPO1  INTEGER NOT NULL,
+  CAMPO2 VARCHAR2(100),
+  CAMPO3       NUMBER(8,2),
+  CONSTRAINT nombre_pk PRIMARY KEY (CAMPO1),
+  CONSTRAINT campo_cnst CHECK (CAMPO1 > CAMPO2),
+  CONSTRAINT campo_u UNIQUE(CAMPO3),
+  CONSTRAINT nombre_fk FOREIGN KEY (CAMPO2) REFERENCES TABLA2(CAMPO2)
+);
+
+-- CAMBIAR UNA COLUMNA A NOT NULL O NULL
+Alter Table NombreTabla
+Modify ( NombreColumna [NOT] NULL );
+
+
+-- FUNCION
+create or replace function fnSuma( a number, b number ) return number
+is
+c number;
+begin
+c := a + b;
+return c;
+end;
+
+-- EJECUCION DE FUNCION
+select fnSuma(12,25) from dual;
+
+-- PROCEDIMIENTO
+create or replace procedure prSuma( a number, b number )
+is
+c number;
+begin
+c := a + b;
+dbms_output.put_line( c );
+end;
+
+-- EJECUCION DE PROCEDIMIENTO
+begin prSuma(15,15);
+end;
+--tambien se usa
+execute prSuma(15,15);
+
+-- BLOQUE ANONIMO
+Declare
+sFecha Varchar2(40);
+Begin
+select to_char(sysdate,'dd/mm/yyyy hh24:mm:ss')
+into sFecha from dual;
+dbms_output.put_line( 'Hoy es: ' || sFecha );
+End;
+
+-- DECLARACION DE VARIABLES
+v_NroAsiento := 78;
+v_Descuento := fnSuma(18,16);
+
+-- CONSULTA EN PROCEDIMIENTO
+create or replace procedure pr101(p_empno number)
+is
+v_ename varchar2(10);
+begin
+select ename into v_ename from emp where empno = p_empno;
+dbms_output.put_line(v_ename);
+end;
+
+
+-- FUNCION PARA RETORNAR EL MISMO TIPO DE DATO
+create or replace function fn101(p_deptno dept.deptno%type)
+return dept.dname%type
+is
+v_dname dept.dname%type;
+begin
+select dname into v_dname from dept where deptno = p_deptno;
+return(v_dname);
+end;
+
+-- EJECUCION DE FUNCION
+select fn101(10) from dual;
+
+
+-- ESTRUCTURA IF
+create or replace function fn102 (n1 number, n2 number, n3 number) return number
+is
+mayor number := 0;
+begin
+if (n1>mayor) then
+mayor := n1;
+end if;
+if (n2>mayor) then
+mayor := n2;
+end if;
+if (n3>mayor) then
+mayor := n3;
+end if;
+return mayor;
+end;
+
+-- ESTRUCTURA IF
+create or replace function fn103 (n1 number, n2 number, n3 number) return number
+is
+mayor number;
+begin
+if (n1>n2) then
+mayor := n1;
+else
+mayor := n2;
+end if;
+if (n3>mayor) then
+mayor := n3;
+end if;
+return mayor;
+end;
+
+-- ESTRUCTURA IF
+create or replace function fn104 (p_empno emp.empno%type) return varchar2
+is
+v_sal emp.sal%type; v_msg varchar2(30);
+begin
+select sal into v_sal from emp where empno = p_empno;
+if (v_sal<2500) then
+v_msg := 'Salario Bajo';
+elsif (v_sal<4000) then
+v_msg := 'Salario Regular';
+else
+v_msg := 'Salario Bueno';
+end if;
+v_msg := to_char(v_sal) || ' - ' || v_msg;
+return v_msg;
+end;
+
+--TABLA TEMPORAL
+create global temporary table TEMPORAL (
+2 id number primary key,
+3 dato varchar2(30)
+4 ) on commit preserve rows;
+
+-- BUCLE LOOP
+create or replace function fn107 (n number) return number
+is
+f number := 1;
+cont number := n;
+begin
+loop
+f := f * cont;
+cont := cont - 1;
+exit when (cont=0);
+end loop;
+return f;
+end;
+
+-- CREAR SECUENCIA
+create sequence sqtest;
+
+
+-- BUCLE WHILE
+create or replace procedure pr102 (n number)
+is
+k number := 0;
+begin
+while (k<n) loop
+insert into TEMPORAL( id,dato )
+values( sqtest.nextval, 'Gustavo Coronel' );
+k := k + 1;
+end loop;
+commit;
+dbms_output.put_line('Proceso Ejecutado');
+end;
+
+-- BUCLE FOR
+create or replace function fn108 ( n number ) return number
+is
+f number := 1;
+begin
+for k in 1 .. n loop
+f := f * k;
+end loop;
+return f;
+end;
+
+-- BUCLE FOR
+create or replace procedure pr103 ( n number, msg varchar2 )
+is
+k number := 1000;
+begin
+for k in 1 .. n loop
+dbms_output.put_line( k || ' – ' || msg );
+end loop;
+dbms_output.put_line( 'k = ' || k );
+end;
+
+-- FOR EN REVERSA
+create or replace procedure pr104 ( n number )
+is
+cad varchar2(30);
+begin
+for k in reverse 1 .. 12 loop
+cad := n || ' x ' || k || ' = ' || (n*k);
+dbms_output.put_line( cad );
+end loop;
+end;
+
+-- ETIQUETA Y SALTO DE ETIQUETA
+create or replace function fn109( b number, p number ) return number
+is
+r number := 1;
+k number := 0;
+begin
+loop
+k := k + 1;
+r := r * b;
+if (k=p) then
+goto fin;
+end if;
+end loop;
+<<fin>>
+return r;
+end;
+
+
+-- NUMERO IMPAR CON NULL
+create or replace function fn110( n number )
+return varchar2
+is
+rtn varchar2(30) := '';
+begin
+if ( mod(n,2) = 0 ) then
+null;
+else
+rtn := n || ' es impar';
+end if;
+return rtn;
+end;
+
+-- REGISTROS
+create or replace procedure pr105( cod emp.empno%type )
+is
+type reg is record (
+nombre emp.ename%type,
+salario emp.sal%type
+);
+r reg;
+begin
+select ename, sal into r
+from emp where empno = cod;
+dbms_output.put_line( 'Nombre: ' || r.nombre );
+dbms_output.put_line( 'Salario: ' || r.salario );
+end;
+
+--ROWTYPE
+--Se utiliza para declarar registros con la misma estructura de una tabla.
+create or replace procedure pr106( cod dept.deptno%type )
+is
+r dept%rowtype;
+begin
+select * into r
+from dept where deptno = cod;
+dbms_output.put_line('Codigo: ' || r.deptno);
+dbms_output.put_line('Nombre: ' || r.dname);
+dbms_output.put_line('Localización: ' || r.loc);
+end;
+
+
+-- MOSTRAR LOS QUE SON MENORES O IGUALES QUE 10,15,20,25
+SELECT columna FROM tabla WHERE campo_columna <= ANY (10,15,20,25);
+
+-- MOSTRAR LOS QUE SON MAYORES QUE 10,15,20,25
+SELECT columna FROM tabla WHERE campo_columna >= ALL (10,15,20,25);
+
+-- MOSTRAR LOS QUE NO SON MAYORES QUE 10
+SELECT columna FROM tabla WHERE NOT (campo_columna >= 10);
+
+-- MOSTRAR LOS QUE PERTENEZCAN A 10
+SELECT columna FROM tabla WHERE campo_columna IN (10);
+
+-- MOSTRAR LOS QUE SE ENCUENTREN ENTRE 10 Y 20
+SELECT columna FROM tabla WHERE campo_columna BETWEEN 10 AND 20;
+
+-- MOSTRAR SI EXISTE
+SELECT columna FROM tabla WHERE EXISTS (SELECT columna2 FROM tabla2 WHERE condicion);
+
+-- MOSTRAR SI ES NULO
+SELECT columna FROM tabla WHERE campo is null;
+
+-- MOSTRAR LOS QUE EMPIECEN 'XX%'
+-- MOSTRAR LOS QUE TERMINEN '%XX'
+-- MOSTRAR LOS QUE CONTENGAN '%X%'
+SELECT columna FROM tabla WHERE campo_columna LIKE 'XX%';
+
+-- ORDENAR POR
+SELECT columna FROM tabla WHERE campo_columna ORDER BY columna1 ASC, columna2 DESC;
+SELECT columna FROM tabla WHERE campo_columna ORDER BY columna1 ASC NULL FIRST;
+
+-- CASE FORMATO 1
+SELECT columna1, columna2,
+CASE columna2 
+WHEN 1 then 'A' 
+WHEN 2 then 'B'
+WHEN 3 then 'C' 
+ELSE 'D' 
+END AS nombre_nueva_columna 
+FROM tabla WHERE condicion;
+
+-- CASE FORMATO 2
+SELECT columna1, columna2,
+CASE columna2 
+WHEN condicion1 then 'A' 
+WHEN condicion2 then 'B'
+WHEN condicion3 then 'C' 
+ELSE 'D' 
+END AS nombre_nueva_columna 
+FROM tabla WHERE condicion;
+
+-- SUMAR EN CONSULTAR
+SELECT campos_columna, (columna1 + columna2) AS nueva_columna FROM tabla;
+
+-- REEMPLAZAR NULO POR OTRO VALOR
+SELECT campos_columna, NVL(campo_columna,nuevo_valor) AS nueva_columna FROM tabla;
+
+-- PRIMERA LETRA MAYUSCULA
+SELECT INITCAP(columna) FROM tabla;
+
+-- SIN DECIMALES
+SELECT TRUNC(columna) FROM TABLA;
+
+-- FORMATO DE FECHA
+ALTER SESSION SET nls_date_format='DD-Mon-YYYY HH24:MI:SS'
+
+-- ADICIONAR MESES A LA FECHA
+SELECT SYSDATE, ADD_MONTHS(SYSDATE,3) FROM dual;
+
+-- FECHA ACTUAL
+select current_date from dual;
+
+-- FECHA Y HORA ACTUAL
+select current_timestamp from dual;
+
+-- EXTRAER ANIO ACTUAL
+select sysdate as Hoy, extract(year from sysdate) as Año2 from dual;
+
+-- EXTRAER MESES
+select sysdate as Hoy, extract(month from sysdate) as Mes2 from dual;
+
+-- EXTRAER DIA
+select sysdate as Hoy, extract(day from sysdate) as Día2 from dual;
+
+-- MESES ENTRE FECHAS
+select months_between('19-Abr-2005','19-Dic-2004') from dual;
+
+-- Muestre el dia de hoy, el ultimo dia del mes y el primer dia del siguiente mes
+select sysdate as Hoy, last_day(sysdate) as fin_del_mes, last_day(sysdate) + 1 as proxino_mes from dual;
+
+-- Convierte una expresión a un tipo de dato específico.
+select cast(sysdate as varchar2(24)) from dual;
+
+-- IDIOMA DE LAS FECHAS
+select to_char(sysdate, 'Day, Month YYYY','NLS_DATE_LANGUAGE=English') from dual;
+
+-- Conversión de Datos Numéricos
+select to_char(15.6789,'99,999.00') from dual;
+select to_char(45.78234,'00,000.00') from dual;
+select to_char(346.4567,'L99,999.00') from dual;
+
+-- Convierte una cadena con una fecha a un dato de tipo fecha.
+select to_date('15-01-2005','DD-MM-YYYY') from dual;
+
+--Convierte una cadena numérica a su respectivo valor numérico.
+select to_number('15.45','999.99') from dual;
+
+-- Obtiene el promedio de una columna o expresión. Se puede aplicar la cláusula DISTINCT.
+select avg(salary) from employees where department_id = 30;
+
+-- Cuenta las filas de una consulta. Se puede aplicar DISTINCT.
+select count(*) from departments;
+
+-- Retorna el máximo valor de una columna ó expresión
+select max(salary) from employees where department_id = 80;
+
+-- HAVING
+-- Mostrar los Departamentos que tienen más de 10 empleados.
+select department_id as Departamento, count(*) as Empleados from employees group by department_id having count(*) > 10;
+
+-- Mostrar los puestos de trabajo de los que solo hay un empleado en la empresa.
+select job_id as Puesto, count(*) as Empleados from employees group by job_id having count(*) = 1;
+
+-- WITH
+-- Muestre los datos de los empleados que son jefes(código,nombre, apellido y salario)
+With Codigosjefes
+As (Select Distinct Manager_Id Codjefe From Employees)
+Select Employee_Id,First_Name, Last_Name, Salary From Employees,CodigosJefes WHERE Employee_Id=codjefe;
+
+-- Muestre los datos de los empleados que ganan más que su jefe
+With Jefes As
+(select employee_id codjefe,last_name apejefe,first_name nomjefe, salary saljefe
+From Employees Where Employee_Id In (Select Distinct Manager_Id From Employees))
+Select Employee_Id,First_Name, Last_Name, Salary,Codjefe,Apejefe,Nomjefe,Saljefe
+From Employees,Jefes
+Where Employees.manager_id=jefes.Codjefe and Employees.salary>jefes.saljefe;
+
+-- Encuentre todos los departamentos(codigos) donde el salario total es mayor que el promedio del salario total de todos los departamentos.
+
+with dept_total (department_id, value) as
+(Select Department_Id, Sum(Salary) from employees group by department_id),
+dept_total_avg(value) as (select avg(value) from dept_total)
+select department_id from dept_total, dept_total_avg where dept_total.value > dept_total_avg.value;
+
+-- SUBCONSULTA DE UNA SOLA FILA
+-- Muestre los empleados cuyo salario es mayor al promedio
+select last_name, first_name, salary from employees where salary = (select max(salary) from employees);
+
+-- SUBCONSULTA DE MULTIPLE FILA
+-- Muestre los empleados y el departamento a que pertenecen si en él trabaja alguien llamado John.
+select last_name, first_name, department_id from employees where department_id in ( select department_id from employees where first_name = 'John' );
+
+-- SUBCONSULTA CORRELACIONADA
+-- Mostrar los empleados que ganan mas en cada departamento.
+select department_id, last_name, salary from employees e1 where salary = ( select max(salary) from employees e2 where e1.department_id = e2.department_id );
+
+-- SUBCONSULTA ESCALAR
+-- Subconsulta Escalar en una Expresión CASE
+-- Listar las ciudades, su código de país, y si es de la India ó no.
+select city, country_id, ( case when country_id in ( select country_id from countries where country_name = 'India' ) then 'Indian' else 'Non-Indian' end) as "India?" from locations where city like 'B%';
+
+-- Subconsulta Escalar en la Cláusula SELECT
+-- Mostrar los numeros y nombres de los departamentos con el salario maximo que perciben sus empleados.
+select department_id, department_name, ( select max(salary) from employees e
+where e.department_id = d.department_id ) as "Salario Maximo" from departments d;
+
+-- Subconsultas Escalares en las Cláusulas SELECT y WHERE
+-- Listar los nombres de los departamentos y el nombre de sus jefes para todos los departamentos que están en Estados Unidos (United States of America) y Canadá (Canada).
+select department_name, manager_id, ( Select last_name from employees e where e.employee_id = d.manager_id) as mgr_name from departments d where ( (select country_id from locations l where d.location_id = l.location_id) in (select country_id from countries c where c.country_name = 'United States of America' or c.country_name = 'Canada') ) and d.manager_id is not null;
+
+-- Subconsultas Escalares en la Cláusula ORDER BY
+-- Listar los nombres de las ciudades y ordenarlos por sus respectivos nombres de país.
+select country_id, city, state_province from locations l order by (select country_name from countries c where l.country_id = c.country_id);
+
+-- Múltiples Columnas en una Subconsulta
+-- Listar todas las ciudades ubicadas en Texas.
+Select Sty_Name From City Where (Cnt_Code, St_Code) In ( Select Cnt_Code, St_Code From State where st_name = 'TEXAS' );
+
+
+-- CATEGORIASL PL/SQL
+--1. DML Lenguaje de Manipulación de Datos: Select, Insert, Update, Delete.
+--2. DDL Lenguaje de Definición de Datos: Create, Alter, Drop, Grant.
+--3. Control de Transacciones: Commit, Rollback.
+--4. Control de Sesiones: Alter Session.
+--5. Control del Sistema: Alter System.
+
+--SQL DINAMICO
+--Permite ejecutar cualquier tipo de instrucción SQL desde PL/SQL.
+
+create or replace procedure pr107( cmd varchar2)
+is
+begin
+execute immediate cmd;
+end;
+
+exec pr107('create table t1 ( id number, dato varchar2(30) )');
+exec pr107('insert into t1 values( 1, ''Oracle is Powerful'' )');
+
+--PLSQL PROCEDIMIENTO SELECT
+create or replace procedure pr108(cod dept.deptno%type) is
+emps number;
+planilla number;
+begin
+select count(*), sum(sal) into emps, planilla
+from emp
+where deptno = cod;
+dbms_output.put_line('Empleados: ' || emps);
+dbms_output.put_line('Planilla: ' || planilla);
+end;
+
+--PLSQL PROCEDIMIENTO INSERT
+create or replace procedure pr109( cod number, nom varchar2, loc varchar2)
+is
+begin
+insert into dept values(cod, nom, loc);
+commit;
+dbms_output.put_line('Proceso OK');
+end;
+
+--PLSQL PROCEDIMIENTO UPDATE (EN ESTE CASO EN CONCRETO EL PROCEDIMIENTO NO RECIBE PARAMETROS)
+create or replace procedure pr110
+is
+begin
+update resumen
+set (emps,planilla) = (select count(*), sum(sal) from emp
+where emp.deptno = resumen.deptno);
+commit;
+dbms_output.put_line('Proceso Ok');
+end;
+
+--PLSQL PROCEDIMIENTO DELETE
+--Desarrollar un procedimiento para eliminar un departamento, primero debe verificar que no tenga registros relacionados en la tabla emp.
+create or replace procedure pr111(cod number)
+is
+cont number;
+begin
+select count(*) into cont from dept where deptno = cod;
+if cont = 0 then
+dbms_output.put_line('No existe');
+return;
+end if;
+select count(*) into cont from emp where deptno = cod;
+if cont > 0 then
+dbms_output.put_line('No puede se eliminado');
+return;
+end if;
+delete from dept where deptno = cod;
+commit;
+dbms_output.put_line('Proceso Ok');
+end;
+
+--CLAUSULA RETURNING
+--Sirve para obtener información de la última fila modificada, puede ser utilizado con las sentencias insert, update, y delete.
+create or replace procedure pr113(msg varchar2)
+is
+v_rowid rowid;
+v_id number;
+begin
+insert into TEMPORAL values(sqtest.nextval,msg)
+returning rowid, id into v_rowid, v_id;
+commit;
+dbms_output.put_line('RowId: ' || v_rowid);
+dbms_output.put_line('Id: ' || v_id);
+end;
+
+--CONECTAR DESDE UNA BD A OTRA CON ENLACE DE DATOS
+create public database link lnk_demo
+connect to usurio identified by contrasena
+using 'dbegcc';
+
+select employee_id, first_name
+from employees@lnk_demo
+where department_id = 30;
+
+--SINONIMO
+create or replace public synonym hr_emp
+for employees@lnk_demo;
+
+select employee_id, first_name
+from hr_emp
+where rownum = 1;
+
+--CURSORES
+--1. Declarar el cursor
+--2. Apertura del cursor
+--3. Extracción de los resultados
+--4. Cerrar el cursor
+
+create or replace procedure pr114
+is
+--DECLARANDO EL CURSOR
+cursor c_demo is select * from dept;
+r dept%rowtype;
+begin
+--APERTURANDO EL CURSOR
+open c_demo;
+--EXTRACCION DE DATOS
+fetch c_demo into r;
+--CERRANDO EL CURSOR
+close c_demo;
+dbms_output.put_line('deptno: ' || r.deptno);
+dbms_output.put_line('dname: ' || r.dname);
+dbms_output.put_line('loc: ' || r.loc);
+end;
+
+-- CURSOR: BUCLE DE EXTRACCION SIMPLE
+create or replace procedure pr115
+is
+cursor c_emp is select * from emp;
+r emp%rowtype;
+begin
+open c_emp;
+loop
+fetch c_emp into r;
+exit when c_emp%notfound;
+dbms_output.put_line(r.empno || ' - ' || r.ename);
+end loop;
+close c_emp;
+end;
+
+-- ATRIBUTOS DE CURSORES
+--%Found - Devuelve TRUE si la última sentencia fetch tuvo éxito.
+--%NotFound - Devuelve TRUE si la última sentencia fetch no tuvo éxito.
+--%IsOpen - Este atributo se utiliza para averiguar si un cursor esta abierto ó no.
+--%RowCount - Este atributo se utiliza para averiguar la cantidad de filas que se van extrayendo del cursor.
+
+-- CURSOR: BUCLE DE EXTRACCION WHILE
+create or replace procedure pr116(p_anio number, p_mes number)
+is
+cursor c_dept is select deptno from dept;
+v_deptno dept.deptno%type;
+cont number;
+v_emps number;
+v_planilla number;
+begin
+select count(*) into cont
+from planillames
+where anio = p_anio and mes = p_mes;
+if (cont > 0) then
+dbms_output.put_line('Ya esta procesado');
+return;
+end if;
+open c_dept;
+fetch c_dept into v_deptno;
+while c_dept%found loop
+select count(*), sum(sal) into v_emps, v_planilla
+from emp
+where deptno = v_deptno;
+insert into planillames
+values(p_anio, p_mes, v_deptno, v_emps, nvl(v_planilla,0));
+fetch c_dept into v_deptno;
+end loop;
+close c_dept;
+commit;
+dbms_output.put_line('Proceso ok.');
+end;
+
+
+-- CURSOR: BUCLE DE EXTRACCION FOR
+create or replace procedure pr117
+is
+cursor c_dept is select * from dept;
+emps number;
+planilla number;
+cad varchar2(100);
+begin
+for r in c_dept loop
+select count(*), sum(nvl(sal,0)) into emps, planilla
+from emp where deptno = r.deptno;
+cad := r.deptno || ' - ' || emps || ' - ' || nvl(planilla,0);
+dbms_output.put_line(cad);
+end loop;
+end;
+
+
+
+-- CURSOR: BUCLE DE EXTRACCION FOR IMPLICITO
+create or replace procedure pr118
+is
+prom number;
+begin
+for r in (select deptno from dept) loop
+select avg(nvl(sal,0)) into prom
+from emp where deptno = r.deptno;
+dbms_output.put_line(r.deptno || '-' || to_char(nvl(prom,0),'999,990.00'));
+end loop;
+end;
+
+exec pr118;
+
+--CURSOR SELECT FOR UPDATE
+create or replace procedure pr119
+is
+cursor c_demo is select * from emp for update wait 2;
+begin
+for r in c_demo loop
+dbms_output.put_line(r.empno || '-' || r.ename);
+end loop;
+end;
+
+-- CURSOR IMPLICITO
+create or replace procedure pr120(cod number, delta number)
+is
+begin
+update emp
+set sal = sal + delta
+where empno = cod;
+if sql%notfound then
+dbms_output.put_line('no existe');
+else
+commit;
+dbms_output.put_line('proceso ok');
+end if;
+end;
+
+
+--TRATAMIENTO DE ERRORES
+--EXCEPCIONES
+--Excepciones Predefinidas
+--INVALID_CURSOR Ocurre cuando se hace referencia a un cursor que esta cerrado.
+--CURSOR_ALREADY_OPEN Ocurre cuando se trata de abrir un cursor que ya esta abierto.
+--NO_DATA_FOUND Ocurre cuando una sentencia SELECT no retorna ninguna fila.
+--TOO_MANY_ROWS Ocurre cuando una sentencia SELECT retorna mas de una fila.
+--VALUE_ERROR Ocurre cuando hay conflicto de tipos de datos.
+
+
+create or replace procedure FindEmp( Cod Emp.EmpNo%Type )
+is
+Salario Emp.Sal%Type;
+Begin
+Select Sal Into Salario
+From Emp
+Where EmpNo = Cod;
+DBMS_Output.Put_Line( 'Salario: ' || Salario );
+Exception
+When No_Data_Found Then
+DBMS_Output.Put_Line( 'Código no existe.' );
+End;
+
+--RAISE
+create or replace procedure UpdateSalEmp
+( Codigo Emp.EmpNo%Type, Salario Emp.Sal%Type )
+is
+Cont Number;
+Begin
+Select Count(*) Into Cont
+From Emp
+Where EmpNo = Codigo;
+If (Cont=0) Then
+Raise No_Data_Found;
+End If;
+Update Emp
+Set Sal = Salario
+Where EmpNo = Codigo;
+Commit;
+DBMS_Output.Put_Line( 'Proceso OK' );
+Exception
+When No_Data_Found Then
+DBMS_Output.Put_Line( 'Código no existe.' );
+End;
+
+--EXCEPCION DE USUARIO
+create or replace procedure UpdateSalEmp2
+( Codigo Emp.EmpNo%Type, Salario Emp.Sal%Type )
+is
+Cont Number;
+Excep1 Exception;
+Begin
+Select Count(*) Into Cont
+From Emp
+Where EmpNo = Codigo;
+If (Cont=0) Then
+Raise Excep1;
+End If;
+Update Emp
+Set Sal = Salario
+Where EmpNo = Codigo;
+Commit;
+DBMS_Output.Put_Line( 'Proceso OK' );
+Exception
+When Excep1 Then
+DBMS_Output.Put_Line( 'Código no existe.' );
+End;
+
+--GENERACION DE MENSAJE DE ERROR
+create or replace procedure UpdateSalEmp3
+( Codigo Emp.EmpNo%Type, Salario Emp.Sal%Type )
+is
+Cont Number;
+Begin
+Select Count(*) Into Cont
+From Emp
+Where EmpNo = Codigo;
+If (Cont=0) Then
+Raise_Application_Error( -20000, 'No existe empleado.' );
+End If;
+Update Emp
+Set Sal = Salario
+Where EmpNo = Codigo;
+Commit;
+DBMS_Output.Put_Line( 'Proceso OK' );
+End;
+
+Create or Replace Procedure prTestOUT1
+( p_Raise IN Boolean, p_Dato Out Varchar2 )
+Is
+Excep1 Exception;
+Begin
+p_Dato := 'Alianza Campeon';
+If p_Raise Then
+Raise Excep1;
+Else
+Return;
+End If;
+End;
+
+Declare
+Rpta Varchar2(20) := 'Shakira';
+Begin
+DBMS_Output.Put_Line( 'Valor Inicial: ' || Rpta );
+prTestOUT1( true, Rpta );
+DBMS_Output.Put_Line( 'Valor Final: ' || Rpta );
+End;
+
+
+--NOCOPY
+Create or Replace Procedure prTestOUT2
+( p_Raise IN Boolean, p_Dato Out NOCOPY Varchar2 )
+Is
+Excep1 Exception;
+Begin
+p_Dato := 'Alianza Campeon';
+If p_Raise Then
+Raise Excep1;
+Else
+Return;
+End If;
+End;
+
+Declare
+Rpta Varchar2(20) := 'Shakira';
+Begin
+DBMS_Output.Put_Line( 'Valor Inicial: ' || Rpta );
+prTestOUT2( False, Rpta );
+DBMS_Output.Put_Line( 'Valor Final: ' || Rpta );
+End;
+
+--PAQUETES
+--Es una estructura PL/SQL que permite almacenar definiciones, funciones y procedimientos relacionados como una sola unidad.
+CREATE OR REPLACE PACKAGE testpackage as
+function suma( n1 in number, n2 in number ) return number;
+END testpackage;
+
+--CUERPO DEL PAQUETE
+CREATE OR REPLACE PACKAGE BODY testpackage as
+function suma( n1 in number, n2 in number ) return number
+as
+rtn number;
+begin
+rtn := n1 + n2;
+return rtn;
+end;
+END testpackage;
+
+select testpackage.suma( 12,13) from dual;
+
+declare
+v_suma number;
+begin
+v_suma := testpackage.suma( 12,13);
+dbms_output.put_line ( 'Suma: ' || v_suma );
+end;
+
+--DESENCADENADORES- TRIGGERS
+--NIVEL DE TABLA
+CREATE OR REPLACE TRIGGER tr_test_emp
+AFTER INSERT OR DELETE OR UPDATE ON emp
+BEGIN
+if inserting then
+dbms_output.put_line( 'nuevo empleado se ha insertado' );
+end if;
+if updating then
+dbms_output.put_line( 'un empleado se ha modificado' );
+end if;
+if deleting then
+dbms_output.put_line( 'un empleado se ha eliminado' );
+end if;
+END tr_test_emp;
+
+insert into emp( empno, ename ) values ( 1234, 'Sergio' );
+
+--NIVEL DE ESQUEMA
+Create or Replace Trigger tr_drop_object
+Before drop on Scott.Schema
+Begin
+Raise_Application_Error( -20000, ‘No se puede eliminar el objeto !!!’ );
+End;
+
+
+
+create or replace trigger TR_BitacoraEmp
+after insert or delete or update
+on emp
+referencing old as old new as new
+for each row
+declare
+begin
+if inserting then
+Insert into bitacora(ACCION,CODEMPLEADO,FECHA,USUARIO) values('inserto',:new.empno,sysdate,user);
+end if;
+if deleting then
+Insert into bitacora(ACCION,CODEMPLEADO,FECHA,USUARIO) values('elimino',:old.empno,sysdate,user);
+end if;
+if updating then
+Insert into bitacora(ACCION,CODEMPLEADO,FECHA,USUARIO) values('modifico',:old.empno,sysdate,user);
+end if;
+end;
+
+
+
+-- PARTE 1
+WITH SALARIO_PROMEDIO(DEPARTAMENTO_ID, PROMEDIO)
+AS
+(
+SELECT F.DEPARTMENT_ID,CAST(AVG(F.SALARY) AS DECIMAL(20,2))
+FROM EMPLOYEES F, DEPARTMENTS G
+WHERE F.DEPARTMENT_ID = G.DEPARTMENT_ID
+GROUP BY F.DEPARTMENT_ID
+)
+SELECT A.EMPLOYEE_ID, A.FIRST_NAME ||' '||A.LAST_NAME AS NOMBRES ,'$'|| CAST(SALARY AS DECIMAL(10,2)) AS SALARIO, H.PROMEDIO AS SALARIO_DEP_PROMEDIO, 
+B.DEPARTMENT_ID,E.REGION_NAME, D.COUNTRY_NAME, C.STATE_PROVINCE
+FROM EMPLOYEES A, DEPARTMENTS B, LOCATIONS C, COUNTRIES D, REGIONS E, SALARIO_PROMEDIO H
+WHERE A.DEPARTMENT_ID = B.DEPARTMENT_ID AND B.LOCATION_ID = C.LOCATION_ID AND C.COUNTRY_ID = D.COUNTRY_ID AND D.REGION_ID = E.REGION_ID
+AND H.DEPARTAMENTO_ID = A.DEPARTMENT_ID AND A.SALARY < H.PROMEDIO
+AND D.COUNTRY_NAME NOT IN ('Canada')
+AND B.DEPARTMENT_NAME NOT IN ('IT','Accounting')
+ORDER BY B.DEPARTMENT_ID DESC;
+
+--===============================================================================
+
+-- PARTE 2
+SELECT F.DEPARTMENT_ID,CAST(SUM(F.SALARY) AS DECIMAL(20,2)) AS SALARIO_TOTAL
+FROM EMPLOYEES F, DEPARTMENTS G
+WHERE F.DEPARTMENT_ID = G.DEPARTMENT_ID
+AND F.DEPARTMENT_ID >= 80
+GROUP BY F.DEPARTMENT_ID;
+
+
+
+-- VARIOS PROCEDIMIENTOS Y FUNCIONES EN PAQUETE
+
+
+
+CREATE OR REPLACE PACKAGE PKG_CONTABILIDAD 
+IS
+   
+  -- Declaraciones de tipos y registros públicas
+  TYPE Cuenta_contable IS RECORD
+  (
+    codigo_cuenta VARCHAR2(6),
+    naturaleza    VARCHAR2(2) ,
+    actividad     VARCHAR2(4) , 
+    debe_haber    VARCHAR2(1)
+  );
+  
+  -- Declaraciones de variables y constantes publicas
+  DEBE  CONSTANT VARCHAR2(1) := 'D';
+  HABER CONSTANT VARCHAR2(1) := 'D';
+  ERROR_CONTABILIZAR EXCEPTION;
+  -- Declaraciones de procedimientos y funciones públicas
+  PROCEDURE Contabilizar (mes VARCHAR2) ;
+  FUNCTION  fn_Obtener_Saldo(codigo_cuenta VARCHAR2) RETURN NUMBER;
+END PKG_CONTABILIDAD;
+
+
+
+CREATE PACKAGE BODY PKG_CONTABILIDAD IS
+ FUNCTION fn_Obtener_Saldo(codigo_cuenta VARCHAR2) 
+ RETURN NUMBER 
+ IS
+   saldo NUMBER;
+ BEGIN
+        SELECT SALDO INTO saldo
+        FROM SALDOS
+        WHERE CO_CUENTA = codigo_cuenta;
+        return (saldo);
+ END;
+ 
+ PROCEDURE Contabilizar(mes VARCHAR2) 
+ IS
+   CURSOR cDatos(vmes VARCHAR2) 
+   IS
+   SELECT * 
+   FROM FACTURACION 
+   WHERE FX_FACTURACION = vmes 
+     AND PENDIENTE_CONTABILIZAR = 'S';
+ 
+   fila cDatos%ROWTYPE;
+ 
+ BEGIN
+   OPEN cDatos(mes); 
+     LOOP FETCH cDatos INTO fila; 
+     EXIT WHEN cDatos%NOTFOUND;
+     /* Procesamiento de los registros recuperados */
+     END LOOP; 
+   CLOSE cDatos;
+ 
+ EXCEPTION
+ WHEN OTHERS THEN 
+   RAISE ERROR_CONTABILIZAR;
+ END Contabilizar;
+END PKG_CONTABILIDAD;
+
+create table subjects (
+subject_id    number not null,
+subject_name  varchar2(30) not null,
+description   varchar2(4000)
+)tablespace users;
